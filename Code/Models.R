@@ -102,7 +102,6 @@ summary(PeakModBin)
 PeakModBetaBin<-betabin(cbind(Peak, rep(100,nrow(fires))) ~ Duration + Structures + Hectares + PopSize + Income + as.factor(Pandemic), ~ 1,data = fires)
 summary(PeakModBetaBin)
 
-
 # Models for California ---------------------------------------------------
 #Peak interest in California
 Peakmod1CA<-glm(PeakCA ~ Structures + Hectares + PopSize + Income + Pandemic + Duration, family = "poisson", data = fires)
