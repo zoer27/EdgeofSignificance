@@ -64,13 +64,54 @@ colnames(tab) <- c("Coefficients","Lower 95%","Upper 95%")
 tab
 exp(tab) #on real scale
 
-#GLM for ratio of peak interest--converting to decimal from percentage--but it's like the offset term is inherent
+#deivance explained for best model
+percdev1 <- (mod3$null.deviance - mod3$deviance) / mod3$null.deviance
+percdev1 #30%
+
+#GLM for ratio of peak interest--the offset term is inherent
+summary(fires$Peak)
+modPeak1<-glm(Peak ~ Duration + Structures + Hectares + PopSize + Income + Pandemic, family = "poisson", data = fires)
+summary(modPeak1)
+
+#testing for overdispersion
+modPeak2<-glm(Peak ~ Duration + Structures + Hectares + PopSize + Income + Pandemic, family = "quasipoisson", data = fires)
+summary(modPeak2) #overdispersion parameter is over 2 so switching to negative binomial
+
+#negative binomial
+modPeak3<-glm.nb(Peak ~ Duration + Structures + Hectares + PopSize + Income + Pandemic, data = fires)
+summary(modPeak3)
+
+#percent deviance explained
+precdev2 <- (modPeak3$null.deviance - modPeak3$deviance) / modPeak3$null.deviance
+precdev2 #17%
+
+#testing model fit
+halfnorm(hatvalues(modPeak3))
+
+#model estimates
+tab2 <- data.frame(coefficients(modPeak3),confint(modPeak3,type = "profile")[,1],confint(modPeak3,type = "profile")[,2])
+colnames(tab2) <- c("Coefficients","Lower 95%","Upper 95%")
+tab2
 
 
 # Models for California ---------------------------------------------------
+#Peak interest in California
+Peakmod1CA<-glm(PeakCA ~ Structures + Hectares + PopSize + Income + Pandemic + Duration, family = "poisson", data = fires)
+summary(Peakmod1CA)
+
+#testing for overdispersion
+Peakmod2CA<-glm(PeakCA ~ Structures + Hectares + PopSize + Income + Pandemic + Duration, family = "quasipoisson", data = fires)
+summary(Peakmod2CA) #overdispersed so switching to 
+
+#negative binomial
+Peakmod3CA<-glm(PeakCA ~ Structures + Hectares + PopSize + Income + Pandemic + Duration, data = fires)
+summary(Peakmod3CA)
 
 
-
+#plots comparing California and National peak
+peakscomp<-tibble(year = rep(fires$Year, 2), name = rep(fires$Name, 2), Peak = c(fires$Peak, fires$PeakCA), Category = c(rep("National", nrow(fires)), rep("California", nrow(fires))))
+peakscomp<-peakscomp %>% arrange(year)
+ggplot() + geom_bar(data = peakscomp, aes(x = name, y = Peak, fill = Category), stat = "identity", position = "dodge")
 
 # Figures -----------------------------------------------------------------
 
@@ -95,5 +136,9 @@ preds1 <- within(preds1, {
 
 ggplot(preds1) +
   geom_ribbon(aes(x = Structures, ymin = LL, ymax = UL, fill = as.factor(Pandemic)), alpha = .25) +
-  geom_line(aes(x = Structures, y = Length, colour = as.factor(Pandemic)), size = 1) +
-  labs(x = "Number of Structures Burned", y = "Length of Interest per day of Fire Duration")
+  geom_line(aes(x = Structures, y = Length, colour = as.factor(Pandemic)), size = 1) + geom_point(data = fires, aes(x = Structures, y = Length, color = as.factor(Pandemic))) + 
+  labs(x = "Number of Structures Burned", y = "Length of Interest on Google")
+
+
+summary(fires$Length)
+summary(fires$Duration)
