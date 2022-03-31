@@ -164,3 +164,46 @@ ggplot(preds3) +
         text = element_text(size = 20))
 
 ggsave("LengthvIncome.jpg", plot = last_plot(), path= "Figures", device="jpeg", type="cairo")
+
+
+#peak plots
+#peak and structures
+ggplot(preds4) +
+  geom_ribbon(aes(x = Structures, ymin = LL, ymax = UL, fill = as.factor(Pandemic)), alpha = .25) +
+  geom_line(aes(x = Structures, y = Peak, colour = as.factor(Pandemic)), size = 1) + 
+  geom_point(data = fires, aes(x = Structures, y = (Peak/100), color = as.factor(Pandemic))) + 
+  scale_fill_manual(values = c("#f7920b", "#b62304"))+
+  scale_color_manual(values = c("#f7920b", "#b62304"))+
+  dark_theme_classic() +
+  theme(legend.position = "none",
+        text = element_text(size = 18)) +
+  labs(x = "Number of Structures Burned", y = "Relative peak of interest on Google")
+
+ggsave("PeakStructures.jpg", plot = last_plot(), path= "Figures", device="jpeg")
+
+#peak and income
+ggplot(preds5) +
+  geom_ribbon(aes(x = Income, ymin = LL, ymax = UL, fill = as.factor(Pandemic)), alpha = .3) +
+  geom_line(aes(x = Income, y = Peak, colour = as.factor(Pandemic)), size = 1) + 
+  geom_point(data = fires, aes(x = Income, y = (Peak/100), color = as.factor(Pandemic))) + 
+  scale_fill_manual(values = c("#f7920b", "#b62304"))+
+  scale_color_manual(values = c("#f7920b", "#b62304"))+
+  labs(x = "Median Household Income", y = "Relative peak of interest on Google") + dark_theme_classic()+
+  theme(legend.position = "none",
+        text = element_text(size = 18))
+
+ggsave("PeakIncome.jpg", plot = last_plot(), path= "Figures", device="jpeg")
+
+#peak and Hectares
+ggplot(preds6) +
+  geom_ribbon(aes(x = Hectares, ymin = LL, ymax = UL, fill = as.factor(Pandemic)), alpha = .3) +
+  geom_line(aes(x = Hectares, y = Peak, colour = as.factor(Pandemic)), size = 1) + 
+  geom_point(data = fires, aes(x = Hectares, y = (Peak/100), color = as.factor(Pandemic))) + 
+  scale_fill_manual(values = c("#f7920b", "#b62304"))+
+  scale_color_manual(values = c("#f7920b", "#b62304"))+
+  labs(x = "Hectares Burned", y = "Relative peak of interest on Google") + dark_theme_classic()+
+  theme(legend.position = "none",
+        text = element_text(size = 18))
+
+ggsave("PeakHectares.jpg", plot = last_plot(), path= "Figures", device="jpeg")
+

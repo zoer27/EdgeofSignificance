@@ -8,6 +8,7 @@
 library(tidyverse)
 library(MASS)
 library(faraway)
+library(aod)
 
 # Data Import -------------------------------------------------------------
 fires<-read_csv("Data/WildFireData.csv")
@@ -93,6 +94,14 @@ tab2 <- data.frame(coefficients(modPeak3),confint(modPeak3,type = "profile")[,1]
 colnames(tab2) <- c("Coefficients","Lower 95%","Upper 95%")
 tab2
 
+#Poisson predictions don't make much sense--trying binomial
+PeakModBin<-glm(cbind(Peak, rep(100,nrow(fires))) ~ Duration + Structures + Hectares + PopSize + Income + as.factor(Pandemic), family = "binomial", data = fires)
+summary(PeakModBin)
+
+#seeing if betabinomial is a better fit
+PeakModBetaBin<-betabin(cbind(Peak, rep(100,nrow(fires))) ~ Duration + Structures + Hectares + PopSize + Income + as.factor(Pandemic), ~ 1,data = fires)
+summary(PeakModBetaBin)
+
 
 # Models for California ---------------------------------------------------
 #Peak interest in California
@@ -107,6 +116,21 @@ summary(Peakmod2CA) #overdispersed so switching to
 Peakmod3CA<-glm(PeakCA ~ Structures + Hectares + PopSize + Income + Pandemic + Duration, data = fires)
 summary(Peakmod3CA)
 
+
+#beta binomial for peak interest in california
+PeakModBetaBinCA<-betabin(cbind(PeakCA, rep(100,nrow(fires))) ~ Duration + Structures + Hectares + PopSize + Income + as.factor(Pandemic), ~ 1,data = fires)
+summary(PeakModBetaBinCA)
+
+
+#including california as a factor--is there a difference between national and california? 
+fires_peakCA<-fires$PeakCA
+fires_peakNA<-fires$Peak
+fires2<-fires %>% dplyr::select(-Peak, -PeakCA) %>%
+  bind_rows(.,.) %>%
+  add_column(PeakALL = c(fires_peakNA, fires_peakCA), Region = c(rep("National", 25), rep("California", 25)))
+
+PeakRegionBetaBin<-betabin(cbind(PeakALL, rep(100,nrow(fires2))) ~ Duration + Structures + Hectares + PopSize + Income + as.factor(Pandemic) + Region, ~ 1,data = fires2)
+summary(PeakRegionBetaBin)
 
 #plots comparing California and National peak
 peakscomp<-tibble(year = rep(fires$Year, 2), name = rep(fires$Name, 2), Peak = c(fires$Peak, fires$PeakCA), Category = c(rep("National", nrow(fires)), rep("California", nrow(fires))))
@@ -155,12 +179,12 @@ summary(fires$Duration)
 
 
 #preds for Hectares
-new.data.2<-data.frame(Structures = rep(1878, 81202), 
-                       Hectares = rep(seq(14000, 420000, by = 10), 2), 
-                       PopSize = rep(900176, 81202), 
-                       Duration = rep(79.96, 81202),
-                       Income = rep(71134, 81202), 
-                       Pandemic = c(rep(1, 40601), rep(0, 40601))) 
+new.data.2<-data.frame(Structures = rep(1878, 40602), 
+                       Hectares = rep(seq(14000, 420000, by = 20), 2), 
+                       PopSize = rep(900176, 40602), 
+                       Duration = rep(79.96, 40602),
+                       Income = rep(71134, 40602), 
+                       Pandemic = c(rep(1, 20301), rep(0, 20301))) 
 
 #making predictions
 preds2<-cbind(new.data.2, predict(mod3, new.data.2, type = "link", se.fit = TRUE))
@@ -210,4 +234,50 @@ ggplot(preds3) +
 
 
 
+#preds for peak National--with structures varying
+preds4<-cbind(new.data.1, predict(PeakModBetaBin, new.data.1, type = "link", se.fit = TRUE))
 
+preds4 <- within(preds4, {
+  Peak <- plogis(fit)
+  LL <- plogis(fit - 1.96 * se.fit)
+  UL <- plogis(fit + 1.96 * se.fit)
+})
+
+
+ggplot(preds4) +
+  geom_ribbon(aes(x = Structures, ymin = LL, ymax = UL, fill = as.factor(Pandemic)), alpha = .25) +
+  geom_line(aes(x = Structures, y = Peak, colour = as.factor(Pandemic)), size = 1) + 
+  geom_point(data = fires, aes(x = Structures, y = (Peak/100), color = as.factor(Pandemic))) + 
+  scale_fill_manual(values = c("#f7920b", "#b62304"))+
+  scale_color_manual(values = c("#f7920b", "#b62304"))+
+  labs(x = "Number of Structures Burned", y = "Relative peak of interest on google")
+
+
+
+#Peak preds with income
+preds5<-cbind(new.data.3, predict(PeakModBetaBin, new.data.3, type = "link", se.fit = TRUE))
+
+preds5 <- within(preds5, {
+  Peak <- plogis(fit)
+  LL <- plogis(fit - 1.96 * se.fit)
+  UL <- plogis(fit + 1.96 * se.fit)
+})
+
+
+ggplot(preds5) +
+  geom_ribbon(aes(x = Income, ymin = LL, ymax = UL, fill = as.factor(Pandemic)), alpha = .25) +
+  geom_line(aes(x = Income, y = Peak, colour = as.factor(Pandemic)), size = 1) + 
+  geom_point(data = fires, aes(x = Income, y = (Peak/100), color = as.factor(Pandemic))) + 
+  scale_fill_manual(values = c("#f7920b", "#b62304"))+
+  scale_color_manual(values = c("#f7920b", "#b62304"))+
+  labs(x = "Number of Structures Burned", y = "Relative peak of interest on google")
+
+
+#peak and Hectares
+preds6<-cbind(new.data.2, predict(PeakModBetaBin, new.data.2, type = "link", se.fit = TRUE))
+
+preds6 <- within(preds6, {
+  Peak <- plogis(fit)
+  LL <- plogis(fit - 1.96 * se.fit)
+  UL <- plogis(fit + 1.96 * se.fit)
+})
