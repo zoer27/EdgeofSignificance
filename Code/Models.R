@@ -115,6 +115,7 @@ ggplot() + geom_bar(data = peakscomp, aes(x = name, y = Peak, fill = Category), 
 
 # Figures -----------------------------------------------------------------
 
+
 #for figures want to use predictions and confidence intervals--easier to interpret than estimates
 
 #create new data fixing the rest of the parameters (usually good to fix at their mean), and then predict on this data, 
@@ -205,6 +206,7 @@ ggplot(preds3) +
   scale_fill_manual(values = c("#f7920b", "#b62304"))+
   scale_color_manual(values = c("#f7920b", "#b62304"))+
   labs(x = "Income", y = "Length of Interest on Google")
+
 
 
 
