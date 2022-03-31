@@ -41,7 +41,7 @@ cor(fires[,c(15:16)])
 #GLM for length of interest (days)--Poisson distribution--using offset for duration so actually modeling a poisson rate
 mod1<-glm(Length ~ Structures + Hectares + PopSize + Income + Pandemic + offset(log(Duration)), family = "poisson", data = fires)
 summary(mod1)
-
+AIC(mod1)
 #Test for overdispersion
 mod2<-glm(Length ~Structures + Hectares + PopSize + Income + Pandemic + offset(log(Duration)), family = "quasipoisson", data = fires)
 summary(mod2)
@@ -50,6 +50,7 @@ summary(mod2)
 #negative binomial
 mod3<-glm.nb(Length ~ Structures + Hectares + PopSize + Income + Pandemic + offset(log(Duration)), data = fires)
 summary(mod3)
+AIC(mod3)
 
 #diagnostics:
 halfnorm(hatvalues(mod3))
@@ -60,6 +61,7 @@ summary(fires[17,]) #don't really see a reason to exclude either of these so kee
 #estimates
 tab <- data.frame(coefficients(mod3),confint(mod3,type = "profile")[,1],confint(mod3,type = "profile")[,2])
 colnames(tab) <- c("Coefficients","Lower 95%","Upper 95%")
+tab
 exp(tab) #on real scale
 
 #GLM for ratio of peak interest--converting to decimal from percentage--but it's like the offset term is inherent
@@ -77,3 +79,21 @@ exp(tab) #on real scale
 #create new data fixing the rest of the parameters (usually good to fix at their mean), and then predict on this data, 
 #I think it would be nice to do this for both pandemic = 1 and pandemic = 0 so you can plot on same plot
 
+#data for prediction across the range of Structures and at mean values of everything else for pandemic and not pandemic years
+new.data.1<-data.frame(Structures = rep(seq(0, 20000, by = 1), 2), Hectares = rep(108714,40002), PopSize = rep(900176, 40002), Duration = rep(79.96, 40002),Income = rep(71134, 40002), Pandemic = c(rep(1, 20001), rep(0, 20001))) 
+
+#making predictions
+preds1<-cbind(new.data.1, predict(mod3, new.data.1, type = "link", se.fit = TRUE))
+
+preds1 <- within(preds1, {
+  Length <- exp(fit)
+  LL <- exp(fit - 1.96 * se.fit)
+  UL <- exp(fit + 1.96 * se.fit)
+})
+
+#plotting predictions
+
+ggplot(preds1) +
+  geom_ribbon(aes(x = Structures, ymin = LL, ymax = UL, fill = as.factor(Pandemic)), alpha = .25) +
+  geom_line(aes(x = Structures, y = Length, colour = as.factor(Pandemic)), size = 1) +
+  labs(x = "Number of Structures Burned", y = "Length of Interest per day of Fire Duration")
