@@ -124,7 +124,7 @@ ggplot() + geom_bar(data = peakscomp, aes(x = name, y = Peak, fill = Category), 
 new.data.1<-data.frame(Structures = rep(seq(0, 20000, by = 10), 2), 
                        Hectares = rep(108714,4002), 
                        PopSize = rep(900176, 4002), 
-                       Duration = rep(79.96, 0002),
+                       Duration = rep(79.96, 4002),
                        Income = rep(71134, 4002), 
                        Pandemic = c(rep(1, 2001), rep(0, 2001))) 
 
@@ -151,3 +151,61 @@ ggplot(preds1) +
 
 summary(fires$Length)
 summary(fires$Duration)
+
+
+#preds for Hectares
+new.data.2<-data.frame(Structures = rep(1878, 81202), 
+                       Hectares = rep(seq(14000, 420000, by = 10), 2), 
+                       PopSize = rep(900176, 81202), 
+                       Duration = rep(79.96, 81202),
+                       Income = rep(71134, 81202), 
+                       Pandemic = c(rep(1, 40601), rep(0, 40601))) 
+
+#making predictions
+preds2<-cbind(new.data.2, predict(mod3, new.data.2, type = "link", se.fit = TRUE))
+
+preds2 <- within(preds2, {
+  Length <- exp(fit)
+  LL <- exp(fit - 1.96 * se.fit)
+  UL <- exp(fit + 1.96 * se.fit)
+})
+
+
+ggplot(preds2) +
+  geom_ribbon(aes(x = Hectares, ymin = LL, ymax = UL, fill = as.factor(Pandemic)), alpha = .25) +
+  geom_line(aes(x = Hectares, y = Length, colour = as.factor(Pandemic)), size = 1) + 
+  geom_point(data = fires, aes(x = Hectares, y = Length, color = as.factor(Pandemic))) + 
+  scale_fill_manual(values = c("#f7920b", "#b62304"))+
+  scale_color_manual(values = c("#f7920b", "#b62304"))+
+  labs(x = "Hectares", y = "Length of Interest on Google")
+ 
+
+#preds for Income
+new.data.3<-data.frame(Structures = rep(1878, 17802), 
+                       Hectares = rep(108714, 17802), 
+                       PopSize = rep(900176, 17802), 
+                       Duration = rep(79.96, 17802),
+                       Income = rep(seq(40000, 129000, by = 10), 2), 
+                       Pandemic = c(rep(1, 8901), rep(0, 8901))) 
+
+#making predictions
+preds3<-cbind(new.data.3, predict(mod3, new.data.3, type = "link", se.fit = TRUE))
+
+preds3 <- within(preds3, {
+  Length <- exp(fit)
+  LL <- exp(fit - 1.96 * se.fit)
+  UL <- exp(fit + 1.96 * se.fit)
+})
+
+
+ggplot(preds3) +
+  geom_ribbon(aes(x = Income, ymin = LL, ymax = UL, fill = as.factor(Pandemic)), alpha = .25) +
+  geom_line(aes(x = Income, y = Length, colour = as.factor(Pandemic)), size = 1) + 
+  geom_point(data = fires, aes(x = Income, y = Length, color = as.factor(Pandemic))) + 
+  scale_fill_manual(values = c("#f7920b", "#b62304"))+
+  scale_color_manual(values = c("#f7920b", "#b62304"))+
+  labs(x = "Income", y = "Length of Interest on Google")
+
+
+
+
