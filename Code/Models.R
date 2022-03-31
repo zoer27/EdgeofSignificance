@@ -115,39 +115,3 @@ ggplot() + geom_bar(data = peakscomp, aes(x = name, y = Peak, fill = Category), 
 
 # Figures -----------------------------------------------------------------
 
-#for figures want to use predictions and confidence intervals--easier to interpret than estimates
-
-#create new data fixing the rest of the parameters (usually good to fix at their mean), and then predict on this data, 
-#I think it would be nice to do this for both pandemic = 1 and pandemic = 0 so you can plot on same plot
-
-#data for prediction across the range of Structures and at mean values of everything else for pandemic and not pandemic years
-new.data.1<-data.frame(Structures = rep(seq(0, 20000, by = 10), 2), 
-                       Hectares = rep(108714,4002), 
-                       PopSize = rep(900176, 4002), 
-                       Duration = rep(79.96, 0002),
-                       Income = rep(71134, 4002), 
-                       Pandemic = c(rep(1, 2001), rep(0, 2001))) 
-
-#making predictions
-preds1<-cbind(new.data.1, predict(mod3, new.data.1, type = "link", se.fit = TRUE))
-
-preds1 <- within(preds1, {
-  Length <- exp(fit)
-  LL <- exp(fit - 1.96 * se.fit)
-  UL <- exp(fit + 1.96 * se.fit)
-})
-
-#plotting predictions
-
-ggplot(preds1) +
-  geom_ribbon(aes(x = Structures, ymin = LL, ymax = UL, fill = as.factor(Pandemic)), alpha = .25) +
-  geom_line(aes(x = Structures, y = Length, colour = as.factor(Pandemic)), size = 1) + 
-  geom_point(data = fires, aes(x = Structures, y = Length, color = as.factor(Pandemic))) + 
-  scale_fill_manual(values = c("#f7920b", "#b62304"))+
-  scale_color_manual(values = c("#f7920b", "#b62304"))+
-  labs(x = "Number of Structures Burned", y = "Length of Interest on Google")+
-  dark_theme_classic()
-
-
-summary(fires$Length)
-summary(fires$Duration)
