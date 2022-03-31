@@ -83,3 +83,29 @@ maxpop <- sapply(counties, function(x){
     slice(1) %>%
     pull(`2019`)
 })
+
+
+wealth <- read.csv("~/../Downloads/ACSST5Y2020.S1901-2022-03-30T234601.csv")
+names(wealth)[1] <- "label"
+county_income <- wealth %>%
+  filter(label=="Median income (dollars)") %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  filter(str_detect(rowname, "Households..Estimate")) %>%
+  mutate(rowname=str_extract(rowname, ".*(?=\\.County)")) %>%
+  mutate(rowname=paste(rowname, "County, California")) %>%
+  mutate(rowname=str_replace(rowname, "\\.", " ")) %>%
+  mutate(V1=str_replace(V1, ",", ""))
+count_income <- sapply(counties, function(x){
+  county_income %>% filter(rowname==x) %>% pull("V1")
+}) %>% as.character()
+writeClipboard(count_income)
+
+counties %>%
+  data.frame(rowname=.) %>%
+  fuzzyjoin::stringdist_left_join(county_income) %>%
+  # filter(rowname.x==rowname.y) %>%
+  pull("V1") %>%
+  str_replace(",", "") %>%
+  writeClipboard() 
