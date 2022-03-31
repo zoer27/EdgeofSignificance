@@ -7,15 +7,17 @@
 
 library(tidyverse)
 library(MASS)
-library(lme4)
-library(RLRsim)
+library(faraway)
 
 # Data Import -------------------------------------------------------------
 fires<-read_csv("Data/WildFireData.csv")
 fires<-fires[1:25,]
 
 #reformatting data
-fires<-fires %>% rename(Length = `Length of Nationwide Google Interest`, County = `Largest County (by pop size)`, Income = `Median Household Income`, Peak = `Peak Interest`, PeakCA = `Peak Interest CA`, PopSize = `Pop Size`)
+fires<-fires %>% rename(Length = `Length of Nationwide Google Interest`, 
+                        County = `Largest County (by pop size)`, Income = `Median Household Income`, 
+                        Peak = `Peak Interest`, PeakCA = `Peak Interest CA`, PopSize = `Pop Size`) %>%
+  mutate(Pandemic = ifelse(Year %in% c(2020,2021), 1, 0)) #creating categorical variable of whether the fire was in a pandemic year
 
 str(fires)
 
@@ -36,35 +38,42 @@ cor(fires[,c(6,10)])
 pairs(fires[,c(15:16)]) #not correlated
 cor(fires[,c(15:16)])
 
-#GLM for length of interest (days)--Poisson distribution
-mod1<-glm(Length ~ Duration + Structures + Hectares + PopSize + Income, family = "poisson", data = fires)
+#GLM for length of interest (days)--Poisson distribution--using offset for duration so actually modeling a poisson rate
+mod1<-glm(Length ~ Structures + Hectares + PopSize + Income + Pandemic + offset(log(Duration)), family = "poisson", data = fires)
 summary(mod1)
 
-#Test model fit
-
 #Test for overdispersion
-mod2<-glm(Length ~ Duration + Structures + Hectares + PopSize + Income, family = "quasipoisson", data = fires)
+mod2<-glm(Length ~Structures + Hectares + PopSize + Income + Pandemic + offset(log(Duration)), family = "quasipoisson", data = fires)
 summary(mod2)
+#dispersion parameter is greater than 2 so overdispersed
 
 #negative binomial
-mod3<-glm.nb(Length ~ Duration + Structures + Hectares + PopSize + Income, data = fires)
+mod3<-glm.nb(Length ~ Structures + Hectares + PopSize + Income + Pandemic + offset(log(Duration)), data = fires)
 summary(mod3)
 
-#Include year as a random effect
-
-mod4<-glmer.nb(Length ~ scale(Duration) + scale(Structures) + scale(Hectares) + scale(PopSize) + scale(Income) + (1|Year), data = fires)
-summary(mod4)
-
-AIC(mod4)
-AIC(mod3)  ###going with simpler model
-
-#check covariates:
+#diagnostics:
+halfnorm(hatvalues(mod3))
+summary(fires[21,]) 
+summary(fires[17,]) #don't really see a reason to exclude either of these so keeping them in
 
 
-#GLM for ratio of peak interest
+#estimates
+tab <- data.frame(coefficients(mod3),confint(mod3,type = "profile")[,1],confint(mod3,type = "profile")[,2])
+colnames(tab) <- c("Coefficients","Lower 95%","Upper 95%")
+exp(tab) #on real scale
+
+#GLM for ratio of peak interest--converting to decimal from percentage--but it's like the offset term is inherent
 
 
 # Models for California ---------------------------------------------------
 
 
+
+
+# Figures -----------------------------------------------------------------
+
+#for figures want to use predictions and confidence intervals--easier to interpret than estimates
+
+#create new data fixing the rest of the parameters (usually good to fix at their mean), and then predict on this data, 
+#I think it would be nice to do this for both pandemic = 1 and pandemic = 0 so you can plot on same plot
 
